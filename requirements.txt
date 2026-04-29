@@ -1,0 +1,7 @@
+streamlit>=1.32.0
+Pillow
+streamlit-lottie
+gradio_client>=0.16.0
+requests
+python-dotenv
+duckduckgo_search

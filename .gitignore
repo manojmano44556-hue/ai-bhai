@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*$py.class
+.streamlit/
+! .streamlit/config.toml
+recipes/
+temp_scan.jpg
+.env
+venv/
+env/
+.DS_Store
