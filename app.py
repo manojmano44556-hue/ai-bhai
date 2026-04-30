@@ -1,4 +1,10 @@
 import streamlit as st
+import os
+import sys
+
+# Ensure the root directory is in the python path for deployments
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 import requests
 import json
 import io
