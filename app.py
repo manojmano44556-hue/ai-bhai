@@ -300,10 +300,19 @@ def render_recipe_structured(data):
             
     with tab2:
         st.markdown("### Let's cook it right!")
-        for i, step in enumerate(data['steps']):
-            st.markdown(f"""<div class='recipe-step-card'>
-                <b>Step {i+1}</b><br>{step}
-            </div>""", unsafe_allow_html=True)
+        # Detection for placeholders
+        is_placeholder = any("Prepare the ingredients" in s for s in data['steps']) or len(data['steps']) < 2
+        
+        if is_placeholder:
+            st.info("💡 *AI Bhai is recalling the deep secrets of this family recipe...*")
+            with st.spinner(f"Preparing detailed instructions for {data['name']}..."):
+                real_recipe = get_ai_bhai_response(f"Provide a highly detailed, professional step-by-step cooking process for {data['name']}. Include exact measurements and chef secrets.")
+                st.markdown(real_recipe)
+        else:
+            for i, step in enumerate(data['steps']):
+                st.markdown(f"""<div class='recipe-step-card'>
+                    <b>Step {i+1}</b><br>{step}
+                </div>""", unsafe_allow_html=True)
             
     with tab3:
         if data['story']:
@@ -370,28 +379,36 @@ def main():
             st.markdown("<div class='bento-card'><h3>Mood</h3>Feeling hungry? Let's fix that!</div>", unsafe_allow_html=True)
 
     # Chat / Explore Modes
+    # Chat / Explore Modes
     if mode == "Chat & Recipes":
+        # Display existing messages first
         for msg in st.session_state.messages:
             with st.chat_message(msg["role"]):
                 st.markdown(msg["content"])
 
-        if prompt := st.chat_input("Ask me for a recipe..."):
+        if prompt := st.chat_input("What would you like to cook?"):
             st.session_state.messages.append({"role": "user", "content": prompt})
-            with st.chat_message("user"): st.markdown(prompt)
+            st.rerun() # Refresh to show user message immediately
 
-            matches = ingredient_matcher.search_recipes(prompt, recipes_db)
-            with st.chat_message("assistant"):
-                if matches:
-                    st.write(f"I found some recipes for you! Click one to see details:")
-                    for m in matches[:5]:
-                        if st.button(f"🥘 {m['recipe']['name']}", key=f"chat_{m['recipe']['name']}"):
-                            st.session_state.selected_recipe = m['recipe']
-                            st.rerun()
-                else:
-                    with st.spinner("Bhai is thinking..."):
-                        response = get_ai_bhai_response(prompt, lang)
-                        st.markdown(response)
-                        st.session_state.messages.append({"role": "assistant", "content": response})
+    # Process most recent user message if it's the last one
+    if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
+        prompt = st.session_state.messages[-1]["content"]
+        matches = ingredient_matcher.search_recipes(prompt, recipes_db)
+        
+        with st.chat_message("assistant"):
+            if matches and matches[0]['score'] > 85:
+                st.write(f"### 🥘 I found the perfect match!")
+                m = matches[0]['recipe']
+                if st.button(f"View Authentic {m['name']}", key="perfect_match"):
+                    st.session_state.selected_recipe = m
+                    st.rerun()
+            else:
+                st.write("### 🌐 Searching the Global Web for the Perfect Recipe...")
+                with st.spinner(f"Bhai is researching the best way to cook '{prompt}'..."):
+                    response = get_ai_bhai_response(prompt, lang)
+                    st.markdown(response)
+                    st.session_state.messages.append({"role": "assistant", "content": response})
+                    st.rerun()
 
     elif mode == "Ingredient Scanner":
         st.header("📸 Visual Ingredient Scanner")

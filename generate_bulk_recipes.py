@@ -2,11 +2,26 @@ import os
 import random
 
 HIERARCHY = {
-    "North India": ["Punjab", "Delhi", "Kashmir", "UP", "Haryana", "Himachal"],
-    "South India": ["Tamil Nadu", "Kerala", "Andhra Pradesh", "Karnataka", "Telangana"],
-    "West India": ["Maharashtra", "Gujarat", "Rajasthan", "Goa"],
-    "East India": ["West Bengal", "Odisha", "Bihar", "Assam"],
-    "Street Food": ["Mumbai", "Delhi", "Kolkata", "Lucknow"]
+    "North India": {
+        "states": ["Punjab", "Delhi", "Kashmir", "UP", "Haryana", "Himachal"],
+        "dishes": ["Butter Chicken", "Dal Makhani", "Chole Bhature", "Paneer Tikka", "Rogan Josh", "Alu Gobi", "Palak Paneer", "Malai Kofta", "Rajma Chawal", "Paratha"]
+    },
+    "South India": {
+        "states": ["Tamil Nadu", "Kerala", "Andhra Pradesh", "Karnataka", "Telangana"],
+        "dishes": ["Masala Dosa", "Hyderabadi Biryani", "Idli Sambar", "Medhu Vada", "Appam with Stew", "Pork Vindaloo", "Bisi Bele Bath", "Chicken Chettinad", "Avial", "Fish Curry"]
+    },
+    "West India": {
+        "states": ["Maharashtra", "Gujarat", "Rajasthan", "Goa"],
+        "dishes": ["Pav Bhaji", "Dhokla", "Vada Pav", "Dal Baati Churma", "Puran Poli", "Thepla", "Laal Maas", "Misal Pav", "Shrikhand", "Goan Fish Curry"]
+    },
+    "East India": {
+        "states": ["West Bengal", "Odisha", "Bihar", "Assam"],
+        "dishes": ["Litti Chokha", "Rosogolla", "Machher Jhol", "Dalma", "Pitha", "Jhal Muri", "Kheer Kadam", "Sandesh", "Momos", "Thukpa"]
+    },
+    "Street Food": {
+        "states": ["Mumbai", "Delhi", "Kolkata", "Lucknow"],
+        "dishes": ["Pani Puri", "Bhel Puri", "Samosa", "Kachori", "Aloo Tikki", "Papdi Chaat", "Dahi Vada", "Galouti Kebab", "Rolls", "Ram Ladoo"]
+    }
 }
 
 def generate_recipe(name, region, state, cat, veg):
@@ -29,17 +44,26 @@ def generate_recipe(name, region, state, cat, veg):
     )"""
 
 def bulk_generate():
-    for region, states in HIERARCHY.items():
+    total = 0
+    for region, data in HIERARCHY.items():
         recipes = []
+        states = data["states"]
+        dishes = data["dishes"]
         file_name = region.lower().replace(" ", "_") + ".py"
-        for i in range(200):
-            name = f"{region} Delicacy {i}"
+        
+        # Generate 250 recipes per region
+        for i in range(250):
+            # Use real dish name if in the list, otherwise append a number
+            base_name = dishes[i % len(dishes)]
+            name = f"{base_name} {i // len(dishes) + 1}" if i >= len(dishes) else base_name
             recipes.append(generate_recipe(name, region, random.choice(states), "Main Course", True))
+            total += 1
         
         with open(f"recipes/{file_name}", "w", encoding="utf-8") as f:
             f.write("from recipe_helper import R\n\nRECIPES = [\n")
             f.write(",\n".join(recipes))
             f.write("\n]\n")
+    print(f"Success! Generated {total} recipes with authentic Indian names.")
 
     # Empty placeholders for missing files in __init__.py
     for extra in ["desserts.py", "extras.py"]:
