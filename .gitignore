@@ -1,9 +1,13 @@
 __pycache__/
 *.py[cod]
 *$py.class
-.streamlit/
-! .streamlit/config.toml
-# recipes/ (Keep this folder)
+
+# Streamlit
+.streamlit/secrets.toml
+# !.streamlit/config.toml  <-- This won't work if .streamlit/ is ignored
+
+# Folders
+# recipes/ (Keep this)
 temp_scan.jpg
 .env
 venv/
