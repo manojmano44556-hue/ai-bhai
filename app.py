@@ -179,7 +179,7 @@ def get_web_recipe_research(query):
         return "No specific web results found, but I will use my internal elder sibling knowledge!"
 
 def get_ai_bhai_response(prompt, language="English", context_recipes=None):
-    """Generates warm, friendly sibling-style responses."""
+    """Generates warm, friendly, and HIGHLY DETAILED sibling-style responses."""
     research_context = "" if context_recipes else get_web_recipe_research(prompt)
     
     lang_map = {"Hindi": "Hinglish", "Telugu": "Tenglish", "Tamil": "Tanglish", "Kannada": "Kanglish", 
@@ -188,14 +188,25 @@ def get_ai_bhai_response(prompt, language="English", context_recipes=None):
     
     local_context = "I found these in our family diary:\n" + "\n".join([f"- {r['recipe']['name']}" for r in context_recipes[:3]]) if context_recipes else ""
 
-    system_prompt = f"You are 'AI Bhai', a caring elder sibling. Speak in {target_lang}. Use local terms naturally. Context: {local_context} {research_context}"
+    system_prompt = f"""You are 'AI Bhai', a caring elder sibling and professional Desi Chef.
+    Speak in {target_lang}. Mix local culinary terms naturally.
+    
+    CRITICAL INSTRUCTIONS:
+    - Provide a COMPLETE, STEP-BY-STEP cooking process. Do not skip any details.
+    - Start with a list of EXACT ingredients with measurements.
+    - Explain the 'Why' behind certain steps (e.g., 'Bhuno the masala until oil separates' for that authentic taste).
+    - Be warm but very professional about the cooking technique.
+    - If using web results, synthesize them into a single, perfect recipe.
+    
+    Context: {local_context} {research_context}"""
+    
     encoded = urllib.parse.quote(f"{system_prompt}\nUser: {prompt}")
     
     try:
         r = requests.get(f"https://text.pollinations.ai/{encoded}", timeout=30)
         return r.text
     except:
-        return "Arre bhai, connection issue! Try again?"
+        return "Arre bhai, connection issue! Let's try again in a bit?"
 
 def apply_ultimatic_theme():
     # Only inject once to save performance
@@ -317,7 +328,11 @@ def main():
 
     # Sidebar
     with st.sidebar:
-        st_lottie(lottie_chef, height=150) if lottie_chef else st.title("AI Bhai")
+        if lottie_chef:
+            st_lottie(lottie_chef, height=150)
+        else:
+            st.title("AI Bhai")
+            
         st.markdown("<h2 style='text-align: center; color: #F28C28;'>The Desi Chef</h2>", unsafe_allow_html=True)
         
         mode = st.radio("🛠️ ACTIONS", ["Chat & Recipes", "Ingredient Scanner", "Explore Regions"])
