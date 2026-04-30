@@ -179,24 +179,36 @@ def get_web_recipe_research(query):
         return "No specific web results found, but I will use my internal elder sibling knowledge!"
 
 def get_ai_bhai_response(prompt, language="English", context_recipes=None):
-    """Generates warm, friendly, and HIGHLY DETAILED sibling-style responses."""
+    """Generates warm, friendly, and HIGHLY DETAILED responses in a natural language mix."""
     research_context = "" if context_recipes else get_web_recipe_research(prompt)
     
-    lang_map = {"Hindi": "Hinglish", "Telugu": "Tenglish", "Tamil": "Tanglish", "Kannada": "Kanglish", 
-                "Malayalam": "Manglish", "Bengali": "Benglish", "Marathi": "Maranglish", "English": "English"}
-    target_lang = lang_map.get(language, "English")
+    # Define the mix style specifically
+    lang_styles = {
+        "Hindi": "Hinglish (Hindi grammar + English technical words)",
+        "Telugu": "Tenglish (Telugu grammar + English technical words like 'Pan', 'Heat', 'Fry')",
+        "Tamil": "Tanglish (Tamil grammar + English cooking terms)",
+        "Kannada": "Kanglish (Kannada grammar + English terms)",
+        "Malayalam": "Manglish (Malayalam grammar + English terms)",
+        "Bengali": "Benglish (Bengali grammar + English terms)",
+        "Marathi": "Maranglish (Marathi grammar + English terms)",
+        "English": "Modern, friendly English"
+    }
+    target_style = lang_styles.get(language, "English")
     
     local_context = "I found these in our family diary:\n" + "\n".join([f"- {r['recipe']['name']}" for r in context_recipes[:3]]) if context_recipes else ""
 
     system_prompt = f"""You are 'AI Bhai', a caring elder sibling and professional Desi Chef.
-    Speak in {target_lang}. Mix local culinary terms naturally.
+    STYLE: Speak in {target_style}. 
     
-    CRITICAL INSTRUCTIONS:
-    - Provide a COMPLETE, STEP-BY-STEP cooking process. Do not skip any details.
+    CRITICAL LANGUAGE RULE:
+    - Use {language} for the basic sentence structure and warm sibling talk.
+    - MAINTAIN English words for technical cooking terms, equipment, and measurements (e.g., use 'Pan heat cheyyandi' instead of the pure Telugu word for heat).
+    - If a cooking term is commonly used in English in India (like 'Fry', 'Sauté', 'Grind', 'Mix'), use the English word.
+    
+    CONTENT RULES:
+    - Provide a COMPLETE, STEP-BY-STEP cooking process.
     - Start with a list of EXACT ingredients with measurements.
-    - Explain the 'Why' behind certain steps (e.g., 'Bhuno the masala until oil separates' for that authentic taste).
-    - Be warm but very professional about the cooking technique.
-    - If using web results, synthesize them into a single, perfect recipe.
+    - Explain 'Why' we do certain steps to ensure the perfect taste.
     
     Context: {local_context} {research_context}"""
     
