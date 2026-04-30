@@ -3,7 +3,7 @@ __pycache__/
 *$py.class
 .streamlit/
 ! .streamlit/config.toml
-recipes/
+# recipes/ (Keep this folder)
 temp_scan.jpg
 .env
 venv/
