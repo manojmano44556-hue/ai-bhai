@@ -37,7 +37,7 @@ SIGNOFF = ["Happy cooking, mere bhai! 💛 — AI Bhai", "Khana bana lo, khushi 
 
 
 def format_recipe_story(recipe):
-    """Generate a storytelling-style recipe presentation."""
+    """Generate a structured recipe presentation."""
     name = recipe.get("name", "Dish")
     name_hi = recipe.get("name_hi", "")
     region = recipe.get("region", "India")
@@ -53,60 +53,32 @@ def format_recipe_story(recipe):
     tips = recipe.get("tips", [])
     nutrition = recipe.get("nutrition", {})
     icon = "🥬" if veg else "🍗"
-    L = []
-    L.append(f"# {icon} {name}")
-    if name_hi: L.append(f"### *{name_hi}*")
-    L.append("")
-    L.append(random.choice(GREETINGS))
-    L.append("")
-    L.append(random.choice(INTROS).format(name=name, region=region))
-    L.append("")
-    if story:
-        L.append(f"📖 **The Story:** *{story}*")
-        L.append("")
-    L.append("---")
-    L.append("### 📊 Quick Info")
-    info = f"🗺️ {region}"
-    if state: info += f" • 📍 {state}"
-    info += f" • {icon} {'Veg' if veg else 'Non-Veg'} • 📏 {diff}"
-    if prep: info += f" • ⏱️ Prep: {prep}min"
-    if cook: info += f" • 🔥 Cook: {cook}min"
-    info += f" • 🍽️ Serves: {serves}"
-    L.append(info)
-    L.append("")
-    L.append(DIFF_MSG.get(diff, ""))
-    L.append("")
-    L.append("---")
-    L.append("### 🛒 Ingredients")
-    for i, ing in enumerate(ingredients):
-        L.append(f"  {i+1}. {ing}")
-    L.append("")
-    L.append("---")
-    L.append("### 👨‍🍳 Let's Cook!")
-    L.append(random.choice(STEP_INTROS))
-    L.append("")
-    emojis = ["🔥","🍳","✨","💫","🎯","⭐","🌟","💎","🎨","👆"]
-    for i, step in enumerate(steps):
-        L.append(f"**Step {i+1}:** {emojis[i%len(emojis)]} {step}")
-        L.append("")
-    if tips:
-        L.append("---")
-        L.append(f"### {random.choice(TIP_INTROS)}")
-        for tip in tips: L.append(f"  ✅ {tip}")
-        L.append("")
-    if nutrition:
-        L.append("---")
-        L.append("### 📈 Nutrition (per serving)")
-        np = []
-        if "cal" in nutrition: np.append(f"🔋 {nutrition['cal']} cal")
-        if "protein" in nutrition: np.append(f"💪 {nutrition['protein']}g protein")
-        if "carbs" in nutrition: np.append(f"🌾 {nutrition['carbs']}g carbs")
-        if "fat" in nutrition: np.append(f"🧈 {nutrition['fat']}g fat")
-        L.append(" | ".join(np))
-        L.append("")
-    L.append("---")
-    L.append(f"*{random.choice(SIGNOFF)}*")
-    return "\n".join(L)
+    
+    # Generate the narrative intro
+    greeting = random.choice(GREETINGS)
+    intro = random.choice(INTROS).format(name=name, region=region)
+    signoff = random.choice(SIGNOFF)
+    
+    return {
+        "name": name,
+        "name_hi": name_hi,
+        "region": region,
+        "state": state,
+        "story": story,
+        "veg": veg,
+        "diff": diff,
+        "prep": prep,
+        "cook": cook,
+        "serves": serves,
+        "ingredients": ingredients,
+        "steps": steps,
+        "tips": tips,
+        "nutrition": nutrition,
+        "greeting": greeting,
+        "intro": intro,
+        "signoff": signoff,
+        "icon": icon
+    }
 
 
 def format_search_results(results, query):

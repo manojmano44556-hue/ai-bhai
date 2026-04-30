@@ -145,348 +145,276 @@ h1, h2, h3 {
 # 🧠 ULTIMATIC BRAIN
 # ==========================================
 
-@st.cache_data
+@st.cache_resource
 def get_recipe_db():
     return get_all_recipes()
 
-def get_vision_analysis(image_file):
-    """
-    Ultra-Robust Vision Logic with detailed error reporting.
-    """
+@st.cache_data
+def get_cached_lottie(url):
     try:
-        # Prepare image
+        r = requests.get(url, timeout=5)
+        return r.json() if r.status_code == 200 else None
+    except:
+        return None
+
+def get_vision_analysis(image_file):
+    """Robust Vision Logic for scanning ingredients."""
+    try:
         img = Image.open(image_file).convert("RGB")
         img.save("temp_scan.jpg", "JPEG")
-            
-        # Strategy 1: Moondream (Fastest)
-        try:
-            with st.status("🔮 Accessing Sibling Vision..."):
-                client = Client("vikhyatk/moondream2", timeout=30)
-                result = client.predict(handle_file("temp_scan.jpg"), "List ingredients.", api_name="/answer_question")
-                if result: return str(result)
-        except Exception as e:
-            st.info(f"Sibling Vision busy, trying Research Node... (Error: {str(e)[:50]})")
-
-        # Strategy 2: InternVL2 (Powerful)
-        try:
-            with st.status("🔮 Querying Research Node..."):
-                client = Client("OpenGVLab/InternVL2-8B", timeout=30)
-                result = client.predict(handle_file("temp_scan.jpg"), "List ingredients.", api_name="/predict")
-                if result: return str(result)
-        except: pass
-
-        # Strategy 3: BLIP2
-        try:
-            with st.status("🔮 Final Check..."):
-                client = Client("Salesforce/BLIP2", timeout=30)
-                result = client.predict(handle_file("temp_scan.jpg"), "List ingredients.", api_name="/predict")
-                if result: return str(result)
-        except: pass
-
-        return "RETRY_MANUAL"
-
+        with st.status("🔮 Bhai is looking at your ingredients..."):
+            client = Client("vikhyatk/moondream2", timeout=30)
+            result = client.predict(handle_file("temp_scan.jpg"), "List ingredients.", api_name="/answer_question")
+            return str(result) if result else "RETRY_MANUAL"
     except Exception as e:
         return f"Scan error: {str(e)}"
 
 def get_web_recipe_research(query):
-    """
-    Real-time internet research using DuckDuckGo.
-    """
+    """Real-time internet research using DuckDuckGo."""
     try:
         with DDGS() as ddgs:
             results = list(ddgs.text(f"authentic Indian recipe for {query}", max_results=3))
-            research_data = "\n".join([f"Source: {r['title']}\nSnippet: {r['body']}" for r in results])
-            return research_data
+            return "\n".join([f"Source: {r['title']}\nSnippet: {r['body']}" for r in results])
     except:
         return "No specific web results found, but I will use my internal elder sibling knowledge!"
 
 def get_ai_bhai_response(prompt, language="English", context_recipes=None):
-    """
-    Combines local database, internet research, and LLM creativity.
-    """
-    research_context = ""
-    if not context_recipes:
-        with st.status("🌐 Researching the Global Culinary Web..."):
-            research_context = get_web_recipe_research(prompt)
+    """Generates warm, friendly sibling-style responses."""
+    research_context = "" if context_recipes else get_web_recipe_research(prompt)
     
-    lang_map = {
-        "Hindi": "Hinglish (Hindi in English script)",
-        "Telugu": "Tenglish (Telugu in English script)",
-        "Tamil": "Tanglish (Tamil in English script)",
-        "Kannada": "Kanglish (Kannada in English script)",
-        "Malayalam": "Manglish (Malayalam in English script)",
-        "Bengali": "Benglish (Bengali in English script)",
-        "Marathi": "Maranglish (Marathi in English script)",
-        "English": "Clean, friendly English"
-    }
-    
+    lang_map = {"Hindi": "Hinglish", "Telugu": "Tenglish", "Tamil": "Tanglish", "Kannada": "Kanglish", 
+                "Malayalam": "Manglish", "Bengali": "Benglish", "Marathi": "Maranglish", "English": "English"}
     target_lang = lang_map.get(language, "English")
     
-    local_context = ""
-    if context_recipes:
-        local_context = f"I found these relevant recipes in our family diary:\n"
-        for r in context_recipes[:3]:
-            local_context += f"- {r['recipe']['name']} ({r['recipe']['region']})\n"
+    local_context = "I found these in our family diary:\n" + "\n".join([f"- {r['recipe']['name']}" for r in context_recipes[:3]]) if context_recipes else ""
 
-    system_prompt = f"""You are 'AI Bhai', the user's Caring Elder Sibling.
-    LANGUAGE: Speak in {target_lang}. Mix local words and English naturally.
-    
-    PERSONALITY:
-    - Extremely friendly, caring, and professional.
-    - Use terms like 'Mere pyaare bhai', 'Meri behan', 'Dost', 'Anna', 'Akka'.
-    
-    RESOURCES:
-    - Local Diary Context: {local_context}
-    - Internet Research Context: {research_context}
-    
-    TASK:
-    - If local recipes exist, use them.
-    - If not, use the Internet Research context to provide a professional, 2026-grade recipe.
-    - If the user provides ingredients from a scan, 'research' your knowledge to give the best dish.
-    
-    FORMAT:
-    1. Warm Sibling Greeting.
-    2. A loving story about why you 'searched' the web for this special request.
-    3. Ingredients.
-    4. [STEP: Description] (Professional).
-    5. A 'Secret Sibling Tip'.
-    """
-    
-    full_prompt = f"{system_prompt}\n\nUser: {prompt}"
-    encoded = urllib.parse.quote(full_prompt)
+    system_prompt = f"You are 'AI Bhai', a caring elder sibling. Speak in {target_lang}. Use local terms naturally. Context: {local_context} {research_context}"
+    encoded = urllib.parse.quote(f"{system_prompt}\nUser: {prompt}")
     
     try:
         r = requests.get(f"https://text.pollinations.ai/{encoded}", timeout=30)
         return r.text
     except:
-        return "Arre bhai, connection issue! Let me try again."
+        return "Arre bhai, connection issue! Try again?"
 
-def render_styled_recipe(text):
-    """Renders text with custom step cards WITHOUT images."""
-    # Split by various step markers
-    pattern = r'\[STEP:\s*(.*?)\]|\*\*Step\s*\d+:\*\*\s*(.*?)(?=\n|$)|Step\s*\d+:\s*(.*?)(?=\n|$)'
-    parts = re.split(pattern, text, flags=re.MULTILINE)
-    
-    cleaned_parts = []
-    for i, p in enumerate(parts):
-        if p is None: continue
-        if i % 4 == 0:
-            cleaned_parts.append(p)
-        else:
-            if p.strip():
-                cleaned_parts.append(p.strip())
-    
-    if len(cleaned_parts) <= 1:
-        st.markdown(text)
-        return
+def apply_ultimatic_theme():
+    # Only inject once to save performance
+    if 'theme_applied' not in st.session_state:
+        st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;900&family=Fredoka:wght@300;700&family=Playfair+Display:ital,wght@0,900;1,900&display=swap');
 
-    step_count = 1
-    for i in range(0, len(cleaned_parts), 2):
-        if cleaned_parts[i].strip():
-            st.markdown(cleaned_parts[i])
+:root {
+    --bhai-orange: #F28C28;
+    --bhai-dark: #22262B;
+    --bhai-green: #6BAA4A;
+    --bhai-red: #E64B3C;
+    --bhai-purple: #7C4D9C;
+    --bhai-cream: #FFF9F3;
+    --pure-white: #FFFFFF;
+}
+
+.stApp {
+    background-color: var(--bhai-cream);
+    color: var(--bhai-dark) !important;
+    font-family: 'Outfit', sans-serif;
+}
+
+h1, h2, h3 { 
+    color: var(--bhai-dark) !important; 
+    font-family: 'Fredoka', sans-serif !important; 
+    font-weight: 700;
+}
+
+.hero-text {
+    font-family: 'Fredoka', sans-serif;
+    font-size: 4rem;
+    color: var(--bhai-orange) !important;
+    text-align: center;
+    margin-bottom: 0;
+}
+
+[data-testid="stSidebar"] {
+    background: var(--bhai-dark) !important;
+}
+
+.bento-card {
+    background: var(--pure-white);
+    border: 2px solid rgba(242, 140, 40, 0.1);
+    border-radius: 24px;
+    padding: 24px;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+}
+
+.recipe-step-card {
+    background: white;
+    padding: 20px;
+    margin: 10px 0;
+    border-radius: 16px;
+    border-left: 5px solid var(--bhai-orange);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+</style>
+""", unsafe_allow_html=True)
+        st.session_state.theme_applied = True
+
+def render_recipe_structured(data):
+    """Modern structured rendering for recipes."""
+    st.markdown(f"<h1 style='color:#F28C28;'>{data['icon']} {data['name']}</h1>", unsafe_allow_html=True)
+    if data['name_hi']: st.markdown(f"*{data['name_hi']}*")
+    
+    st.write(f"### {data['greeting']}")
+    st.write(data['intro'])
+    
+    # Bento Quick Info
+    c1, c2, c3, c4 = st.columns(4)
+    with c1: st.metric("🗺️ Region", data['region'])
+    with c2: st.metric("⏱️ Prep", f"{data['prep']}m")
+    with c3: st.metric("🔥 Cook", f"{data['cook']}m")
+    with c4: st.metric("📏 Difficulty", data['diff'])
+    
+    tab1, tab2, tab3 = st.tabs(["🛒 Ingredients", "👨‍🍳 Cooking Steps", "📖 Story & Tips"])
+    
+    with tab1:
+        st.markdown("### Necessary Ingredients")
+        for i, ing in enumerate(data['ingredients']):
+            st.markdown(f"✅ **{ing}**")
             
-        if i + 1 < len(cleaned_parts):
-            step_desc = cleaned_parts[i+1]
-            st.markdown(f"<div class='recipe-step'><b>🔥 Step {step_count}:</b> {step_desc}</div>", unsafe_allow_html=True)
-            # Removed image generation as per user request
-            step_count += 1
+    with tab2:
+        st.markdown("### Let's cook it right!")
+        for i, step in enumerate(data['steps']):
+            st.markdown(f"""<div class='recipe-step-card'>
+                <b>Step {i+1}</b><br>{step}
+            </div>""", unsafe_allow_html=True)
+            
+    with tab3:
+        if data['story']:
+            st.info(f"**The Origin Story:**\n\n{data['story']}")
+        if data['tips']:
+            st.warning("**AI Bhai's Pro Tips:**\n\n" + "\n".join([f"- {t}" for t in data['tips']]))
+        
+        if data['nutrition']:
+            st.write("---")
+            st.write("**Nutrition Facts:**")
+            st.json(data['nutrition'])
 
-# ==========================================
-# 🚀 MAIN APP
-# ==========================================
+    st.divider()
+    st.write(f"*{data['signoff']}*")
+
 def main():
     apply_ultimatic_theme()
     recipes_db = get_recipe_db()
+    
+    # Load Lottie animations with caching
+    lottie_chef = get_cached_lottie("https://lottie.host/8863f6c2-0731-417e-9762-c07a0e106967/I4z3Y5E8oI.json")
 
     # Sidebar
     with st.sidebar:
-        st.markdown("<h1 style='text-align: center; color: #F28C28; font-family: Fredoka, sans-serif;'>ai bhai</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: white; opacity: 0.8; letter-spacing: 2px; font-size: 0.8rem;'>YOUR AI COOKING ASSISTANT</p>", unsafe_allow_html=True)
-        st.markdown(f"<p style='text-align:center; color: white; opacity:0.5; font-size: 0.7rem;'>v2.0 | {get_recipe_count()} Recipes</p>", unsafe_allow_html=True)
-        
-        st.divider()
-        
-        st.subheader("🗣️ AI BHAI SPEAKS")
-        lang = st.selectbox("Choose Tone", ["English", "Hindi", "Telugu", "Tamil", "Kannada", "Malayalam", "Bengali", "Marathi"], help="AI Bhai will speak in your preferred local transliterated language!")
-        
-        st.divider()
+        st_lottie(lottie_chef, height=150) if lottie_chef else st.title("AI Bhai")
+        st.markdown("<h2 style='text-align: center; color: #F28C28;'>The Desi Chef</h2>", unsafe_allow_html=True)
         
         mode = st.radio("🛠️ ACTIONS", ["Chat & Recipes", "Ingredient Scanner", "Explore Regions"])
+        lang = st.selectbox("🗣️ Language", ["English", "Hindi", "Telugu", "Tamil", "Kannada", "Malayalam", "Bengali", "Marathi"])
         
         st.divider()
-        
-        with st.expander("🌶️ Dietary Filters"):
-            veg_only = st.checkbox("Veg Only", value=True)
-            spicy_level = st.select_slider("Spice Level", options=["Mild", "Medium", "Desi Hot"])
-            
-        st.info("💡 **Pro Tip:** Upload a photo of your fridge to see what AI Bhai can cook!")
+        if st.button("🎲 Surprise Me!"):
+            st.session_state.selected_recipe = random.choice(recipes_db)
+            st.rerun()
 
-    # Main Hero Section
+    # App Logic
     if "messages" not in st.session_state:
         st.session_state.messages = []
-    if "scanner_results" not in st.session_state:
-        st.session_state.scanner_results = None
-    if "selected_recipe" not in st.session_state:
-        st.session_state.selected_recipe = None
+    
+    if st.session_state.get('selected_recipe'):
+        if st.button("← Back to Menu"):
+            st.session_state.selected_recipe = None
+            st.rerun()
         
-    if not st.session_state.messages and not st.session_state.selected_recipe:
+        recipe_data = storyteller.format_recipe_story(st.session_state.selected_recipe)
+        render_recipe_structured(recipe_data)
+        return
+
+    # Landing Page
+    if not st.session_state.messages:
         st.markdown("<h1 class='hero-text'>ai bhai</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; font-size: 1.2rem; opacity: 0.8;'>YOUR AI COOKING ASSISTANT</p>", unsafe_allow_html=True)
-        
-        # Featured Icons row (as seen in mockup)
-        cols = st.columns(4)
-        icons = [
-            ("🍃", "INDIAN RECIPES", "Authentic flavors"),
-            ("👨🏽‍🍳", "STEP BY STEP", "Easy to follow"),
-            ("🌶️", "MADE EASY", "Simple cooking"),
-            ("✨", "AI POWERED", "Smart assistant")
-        ]
-        for i, (icon, title, sub) in enumerate(icons):
-            with cols[i]:
-                st.markdown(f"""
-                <div style='text-align: center; padding: 20px; background: white; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid rgba(242, 140, 40, 0.1);'>
-                    <div style='font-size: 2.5rem;'>{icon}</div>
-                    <div style='font-weight: 700; font-size: 0.9rem; margin-top: 10px; color: #F28C28;'>{title}</div>
-                    <div style='font-size: 0.7rem; opacity: 0.6;'>{sub}</div>
-                </div>
-                """, unsafe_allow_html=True)
-        
-        st.divider()
+        st.markdown("<p style='text-align: center;'>YOUR ULTIMATE AI COOKING SIBLING</p>", unsafe_allow_html=True)
         
         col1, col2, col3 = st.columns(3)
         with col1:
-            st.markdown(f"<div class='bento-card'><h3>📅 Daily Special</h3>{storyteller.get_daily_special()}</div>", unsafe_allow_html=True)
-            if st.button("Get Daily Recipe"):
-                r = random.choice(recipes_db)
-                st.session_state.selected_recipe = r
-                st.rerun()
-                
+            st.markdown(f"<div class='bento-card'><h3>Daily Special</h3>{storyteller.get_daily_special()}</div>", unsafe_allow_html=True)
         with col2:
-            st.markdown("<div class='bento-card'><h3>🎲 Surprise Me</h3>Feel lucky? Let AI Bhai pick a random dish!</div>", unsafe_allow_html=True)
-            if st.button("🎲 Random Recipe"):
-                r = random.choice(recipes_db)
-                st.session_state.selected_recipe = r
-                st.rerun()
-                
+            st.markdown(f"<div class='bento-card'><h3>Stats</h3>🔥 <b>{len(recipes_db)}</b> Local Recipes</div>", unsafe_allow_html=True)
         with col3:
-            st.markdown(f"<div class='bento-card'><h3>Stats</h3>👨‍🍳 <b>{get_recipe_count()}</b> Local Recipes<br>🚀 <b>Zero-Key</b> AI Engaged</div>", unsafe_allow_html=True)
+            st.markdown("<div class='bento-card'><h3>Mood</h3>Feeling hungry? Let's fix that!</div>", unsafe_allow_html=True)
 
-    # Global Selected Recipe View
-    if st.session_state.selected_recipe:
-        if st.button("← Back"):
-            st.session_state.selected_recipe = None
-            st.rerun()
-        story = storyteller.format_recipe_story(st.session_state.selected_recipe)
-        render_styled_recipe(story)
-        return
-
-    # --- MODE: CHAT ---
+    # Chat / Explore Modes
     if mode == "Chat & Recipes":
         for msg in st.session_state.messages:
             with st.chat_message(msg["role"]):
-                render_styled_recipe(msg["content"])
+                st.markdown(msg["content"])
 
-        if prompt := st.chat_input("What should we cook today, Bhai?"):
+        if prompt := st.chat_input("Ask me for a recipe..."):
             st.session_state.messages.append({"role": "user", "content": prompt})
-            with st.chat_message("user"):
-                st.markdown(prompt)
+            with st.chat_message("user"): st.markdown(prompt)
 
             matches = ingredient_matcher.search_recipes(prompt, recipes_db)
             with st.chat_message("assistant"):
-                with st.status("🧠 Consulting the spices..."):
-                    response = get_ai_bhai_response(prompt, lang, matches)
-                render_styled_recipe(response)
-                st.session_state.messages.append({"role": "assistant", "content": response})
-
-    # --- MODE: SCANNER ---
-    elif mode == "Ingredient Scanner":
-        st.header("📸 Visual Ingredient Scanner")
-        
-        if st.button("🗑️ Reset Scanner"):
-            st.session_state.scanner_results = None
-            st.rerun()
-
-        tab1, tab2 = st.tabs(["📤 Upload Photo", "✍️ Manual Entry"])
-        
-        with tab1:
-            uploaded_file = st.file_uploader("Show me your ingredients...", type=["jpg", "jpeg", "png"])
-        with tab2:
-            manual_input = st.text_area("Tell me what ingredients you have (e.g. Tomato, Onion, Chicken)...")
-            if st.button("🔍 Research My Ingredients"):
-                if manual_input:
-                    matches = ingredient_matcher.match_recipes(manual_input.split(","), recipes_db)
-                    st.session_state.scanner_results = {"detected": manual_input, "matches": matches}
-
-        active_file = uploaded_file
-        
-        if active_file:
-            st.image(active_file, caption="Selected Image", width=300)
-            c1, c2 = st.columns(2)
-            if c1.button("🔍 Start AI Analysis"):
-                detected_text = get_vision_analysis(active_file)
-                
-                if detected_text == "RETRY_MANUAL":
-                    st.warning("Arre bhai, the AI servers are a bit busy! Can you please use the 'Manual Entry' tab or tell me in chat?")
-                elif "Scan error" in detected_text:
-                    st.error(f"Technical glitch! {detected_text}")
-                else:
-                    detected_list = [i.strip() for i in detected_text.split(",")]
-                    matches = ingredient_matcher.match_recipes(detected_list, recipes_db)
-                    st.session_state.scanner_results = {"detected": detected_text, "matches": matches}
-            
-            if c2.button("❌ Cancel Photo"):
-                st.rerun() # Simple rerun will clear the temporary state if file uploader is not interacted with
-            
-            if st.session_state.scanner_results:
-                res = st.session_state.scanner_results
-                st.markdown(f"<div class='bento-card'><h3>🔍 AI Findings</h3>{res['detected']}</div>", unsafe_allow_html=True)
-                if res['matches']:
-                    st.success(f"Found {len(res['matches'])} family recipes!")
-                    for m in res['matches'][:5]:
-                        col_a, col_b = st.columns([3, 1])
-                        col_a.write(f"🥘 **{m['recipe']['name']}** ({m['match_pct']}% match)")
-                        if col_b.button("Cook This", key=f"scan_{m['recipe']['name']}"):
+                if matches:
+                    st.write(f"I found some recipes for you! Click one to see details:")
+                    for m in matches[:5]:
+                        if st.button(f"🥘 {m['recipe']['name']}", key=f"chat_{m['recipe']['name']}"):
                             st.session_state.selected_recipe = m['recipe']
                             st.rerun()
                 else:
-                    st.info("No exact matches, but I can create something special!")
-                    if st.button("👨‍🍳 Create Custom Recipe"):
-                        with st.status("🧠 Consulting sibling diary..."):
-                            ai_res = get_ai_bhai_response(f"I have: {res['detected']}. Make a professional recipe.", lang)
-                            st.session_state.messages.append({"role": "assistant", "content": ai_res})
-                            st.session_state.selected_recipe = None # Clear this to show chat history
-                            st.rerun()
+                    with st.spinner("Bhai is thinking..."):
+                        response = get_ai_bhai_response(prompt, lang)
+                        st.markdown(response)
+                        st.session_state.messages.append({"role": "assistant", "content": response})
 
-    # --- MODE: EXPLORE ---
+    elif mode == "Ingredient Scanner":
+        st.header("📸 Visual Ingredient Scanner")
+        
+        uploaded_file = st.file_uploader("Show me your ingredients...", type=["jpg", "jpeg", "png"])
+        
+        if uploaded_file:
+            st.image(uploaded_file, width=300)
+            if st.button("🔍 Analyze Ingredients"):
+                detected = get_vision_analysis(uploaded_file)
+                st.info(f"Bhai detected: {detected}")
+                
+                detected_list = [i.strip() for i in detected.split(",")]
+                matches = ingredient_matcher.match_recipes(detected_list, recipes_db)
+                
+                if matches:
+                    st.success(f"I found {len(matches)} matching recipes!")
+                    for m in matches[:5]:
+                        if st.button(f"🥘 {m['recipe']['name']} ({m['match_pct']}% match)", key=f"scan_{m['recipe']['name']}"):
+                            st.session_state.selected_recipe = m['recipe']
+                            st.rerun()
+                else:
+                    st.warning("No exact matches in our diary, but I can create a custom one!")
+                    if st.button("👨‍🍳 Create Custom Recipe"):
+                        response = get_ai_bhai_response(f"I have: {detected}. Make a recipe.", lang)
+                        st.session_state.messages.append({"role": "assistant", "content": response})
+                        st.rerun()
+
     elif mode == "Explore Regions":
-        st.header("🗺️ Explore Regional Cuisines")
+        st.header("🗺️ Regional Specialties")
+        regions = sorted(list(set(r.get('region', 'Other') for r in recipes_db)))
+        sel_region = st.selectbox("Select Region", regions)
         
-        # Two-tier filtering: Region -> State
-        all_regions = sorted(list(set(r.get("region") for r in recipes_db if r.get("region"))))
-        sel_region = st.selectbox("1. Select Region", ["All"] + all_regions)
+        filtered = [r for r in recipes_db if r.get('region') == sel_region]
         
-        filtered_by_region = recipes_db
-        if sel_region != "All":
-            filtered_by_region = [r for r in recipes_db if r.get("region") == sel_region]
-            
-        all_states = sorted(list(set(r.get("state") for r in filtered_by_region if r.get("state"))))
-        sel_state = st.selectbox("2. Select State", ["All"] + all_states)
-        
-        final_recipes = filtered_by_region
-        if sel_state != "All":
-            final_recipes = [r for r in filtered_by_region if r.get("state") == sel_state]
-            
-        st.write(f"Showing **{len(final_recipes)}** recipes")
-        
-        # Grid Display
-        for i in range(0, len(final_recipes), 2):
-            cols = st.columns(2)
-            for j in range(2):
-                if i + j < len(final_recipes):
-                    r = final_recipes[i+j]
+        # Grid Display with Bento styling
+        for i in range(0, len(filtered), 3):
+            cols = st.columns(3)
+            for j in range(3):
+                if i + j < len(filtered):
+                    r = filtered[i+j]
                     with cols[j]:
-                        st.markdown(f"<div class='bento-card'><h4>{r['name']}</h4><p>{r.get('cat', 'Main Course')} • {r.get('diff', 'Medium')}</p></div>", unsafe_allow_html=True)
-                        if st.button("View Recipe", key=f"expl_{r['name']}"):
+                        st.markdown(f"<div class='bento-card' style='padding:15px; margin-bottom:10px;'><b>{r['name']}</b><br><small>{r.get('state', '')}</small></div>", unsafe_allow_html=True)
+                        if st.button("View Details", key=f"expl_{r['name']}"):
                             st.session_state.selected_recipe = r
                             st.rerun()
 
