@@ -349,10 +349,13 @@ def main():
 
     # Sidebar
     with st.sidebar:
-        if lottie_chef:
-            st_lottie(lottie_chef, height=150)
+        if os.path.exists("logo.png"):
+            st.image("logo.png", use_container_width=True)
         else:
-            st.title("AI Bhai")
+            if lottie_chef:
+                st_lottie(lottie_chef, height=150)
+            else:
+                st.title("AI Bhai")
             
         st.markdown("<h2 style='text-align: center; color: #F28C28;'>The Desi Chef</h2>", unsafe_allow_html=True)
         
@@ -379,7 +382,10 @@ def main():
 
     # Landing Page
     if not st.session_state.messages:
-        st.markdown("<h1 class='hero-text'>ai bhai</h1>", unsafe_allow_html=True)
+        if os.path.exists("logo.png"):
+            st.image("logo.png", use_container_width=True)
+        else:
+            st.markdown("<h1 class='hero-text'>ai bhai</h1>", unsafe_allow_html=True)
         st.markdown("<p style='text-align: center;'>YOUR ULTIMATE AI COOKING SIBLING</p>", unsafe_allow_html=True)
         
         col1, col2, col3 = st.columns(3)
