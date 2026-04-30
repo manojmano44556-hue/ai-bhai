@@ -260,12 +260,18 @@ h1, h2, h3 {
         st.session_state.theme_applied = True
 
 def render_recipe_structured(data):
-    """Modern structured rendering for recipes."""
-    st.markdown(f"<h1 style='color:#F28C28;'>{data['icon']} {data['name']}</h1>", unsafe_allow_html=True)
-    if data['name_hi']: st.markdown(f"*{data['name_hi']}*")
+    """Modern structured rendering with fail-safe for transition."""
+    # Fail-safe: If data is a string (old format), just show it
+    if isinstance(data, str):
+        st.markdown(data)
+        return
+
+    # Modern Bento UI for dictionaries
+    st.markdown(f"<h1 style='color:#F28C28;'>{data.get('icon', '👨‍🍳')} {data.get('name', 'Recipe')}</h1>", unsafe_allow_html=True)
+    if data.get('name_hi'): st.markdown(f"*{data['name_hi']}*")
     
-    st.write(f"### {data['greeting']}")
-    st.write(data['intro'])
+    st.write(f"### {data.get('greeting', 'Namaste!')}")
+    st.write(data.get('intro', 'Let\'s cook something special!'))
     
     # Bento Quick Info
     c1, c2, c3, c4 = st.columns(4)
